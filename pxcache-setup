@@ -19,12 +19,12 @@ metadata_bytes=`expr 4194304 + ${nr_bytes}`
 metadata_size=`expr $metadata_bytes / 512`
 cache_size=`expr $fast_device_size / 512 - $metadata_size`
 
-if [ ! -d /etc/pwx ]; then
-    mkdir -p /etc/pwx/
-fi
-
-if [ -e /etc/pwx/.cache_setup.done ]; then
-    exit 0
+# teardown
+#if [[ ( -e /dev/mapper/ssd-metadata ) && ( -e /dev/mapper/ssd-blocks ) && ( -e /dev/mapper/pxd-cached ) ]]; then
+if [ -e /dev/mapper/ssd-metadata ] && [ -e /dev/mapper/ssd-blocks ] && [ -e /dev/mapper/pxd-cached ]; then
+    dmsetup remove pxd-cached
+    dmsetup remove ssd-metadata
+    dmsetup remove ssd-blocks
 fi
 
 # Create metadata device
@@ -41,6 +41,3 @@ slow_device_size=`blockdev --getsz ${slow_device}`
 # Create the cache device
 eval "dmsetup create pxd-cached --table '0 ${slow_device_size} cache /dev/mapper/ssd-metadata /dev/mapper/ssd-blocks ${slow_device} 512 1 writeback default 0'"
 eval "dmsetup resume pxd-cached"
-
-# Finally, leave a signature
-touch /etc/pwx/.cache_setup.done
