@@ -1,0 +1,46 @@
+#!/bin/sh
+
+if [ "$#" -ne 2 ]; then
+    echo "[ERROR]: Required arguments missing"
+    exit 1
+fi
+
+fast_device=$1
+slow_device=$2
+
+echo "[INFO]: Using ${fast_device} for caching"
+
+# Get device size
+fast_device_size=`blockdev --getsize64 ${fast_device}`
+
+nr_blocks=`expr ${fast_device_size} / 262144`
+nr_bytes=`expr 16 \* ${nr_blocks}`
+metadata_bytes=`expr 4194304 + ${nr_bytes}`
+metadata_size=`expr $metadata_bytes / 512`
+cache_size=`expr $fast_device_size / 512 - $metadata_size`
+
+if [ ! -d /etc/pwx ]; then
+    mkdir -p /etc/pwx/
+fi
+
+if [ -e /etc/pwx/.cache_setup.done ]; then
+    exit 0
+fi
+
+# Create metadata device
+eval "dmsetup create ssd-metadata --table '0 ${metadata_size} linear ${fast_device} 0'"
+# create cache device
+eval "dmsetup create ssd-blocks --table '0 ${cache_size} linear ${fast_device} ${metadata_size}'"
+
+# initialize the metadata device
+dd if=/dev/zero of=/dev/mapper/ssd-metadata
+
+# Get slow device size
+slow_device_size=`blockdev --getsz ${slow_device}`
+
+# Create the cache device
+eval "dmsetup create pxd-cached --table '0 ${slow_device_size} cache /dev/mapper/ssd-metadata /dev/mapper/ssd-blocks ${slow_device} 512 1 writeback default 0'"
+eval "dmsetup resume pxd-cached"
+
+# Finally, leave a signature
+touch /etc/pwx/.cache_setup.done
