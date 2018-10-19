@@ -7,7 +7,7 @@ Requires=systemd-journald.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/curl -fsL https://raw.githubusercontent.com/satchpx/dmcache/master/pxcache-setup | bash -s <dev1> <dev2>
+ExecStart=/bin/bash -c "/usr/bin/curl -fsL https://raw.githubusercontent.com/satchpx/dmcache/master/pxcache-setup | bash -s /dev/nvme0n1 /dev/xvdb"
 RemainAfterExit=true
 
 [Install]
