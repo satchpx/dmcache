@@ -1,5 +1,17 @@
 #!/bin/sh
 
+if [ "$#" -eq 1 ]; then
+    if [ $1 = "clean" ]; then
+        dmsetup remove pxd-cached
+        dmsetup remove ssd-metadata
+        dmsetup remove ssd-blocks
+        exit 0
+    else
+        echo "Invalid argument $1"
+        exit 1
+    fi
+fi
+
 if [ "$#" -ne 2 ]; then
     echo "[ERROR]: Required arguments missing"
     exit 1
