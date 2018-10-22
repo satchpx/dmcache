@@ -25,14 +25,16 @@ echo "[INFO]: Using ${fast_device} for caching"
 # Get device size
 fast_device_size=`blockdev --getsize64 ${fast_device}`
 
-nr_blocks=`expr ${fast_device_size} / 262144`
+# nr_blocks = fast_device_size / cache_block_size. Using 128K below
+nr_blocks=`expr ${fast_device_size} / 131072`
+
 nr_bytes=`expr 16 \* ${nr_blocks}`
 metadata_bytes=`expr 4194304 + ${nr_bytes}`
+# The result above is the size of the metadata partition in bytes, convert it to number of sectors
 metadata_size=`expr $metadata_bytes / 512`
 cache_size=`expr $fast_device_size / 512 - $metadata_size`
 
 # teardown
-#if [[ ( -e /dev/mapper/ssd-metadata ) && ( -e /dev/mapper/ssd-blocks ) && ( -e /dev/mapper/pxd-cached ) ]]; then
 if [ -e /dev/mapper/ssd-metadata ] && [ -e /dev/mapper/ssd-blocks ] && [ -e /dev/mapper/pxd-cached ]; then
     dmsetup remove pxd-cached
     dmsetup remove ssd-metadata
@@ -51,5 +53,5 @@ dd if=/dev/zero of=/dev/mapper/ssd-metadata
 slow_device_size=`blockdev --getsz ${slow_device}`
 
 # Create the cache device
-eval "dmsetup create pxd-cached --table '0 ${slow_device_size} cache /dev/mapper/ssd-metadata /dev/mapper/ssd-blocks ${slow_device} 512 1 writeback default 0'"
+eval "dmsetup create pxd-cached --table '0 ${slow_device_size} cache /dev/mapper/ssd-metadata /dev/mapper/ssd-blocks ${slow_device} 256 1 writeback default 0'"
 eval "dmsetup resume pxd-cached"

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+profile=$1
+
+# Setup pxd cache
+eval "curl -fsL https://raw.githubusercontent.com/satchpx/dmcache/master/pxcache-setup | bash -s /dev/nvme0n1 /dev/xvdb"
+
+# Get dmstats
+dmsetup status /dev/mapper/pxd-cached
+
+# Run a sequential write
+mount /dev/mapper/pxd-cached /mnt
+eval "fio --blocksize=8k --filename=/mnt/foo --ioengine=libaio --readwrite=write --size=20G --name=test --iodepth=128 --fsync=128 --direct=1 --end_fsync=1"
+
+# Get dm stats
+dmsetup status /dev/mapper/pxd-cached
+
+# Run a sequential read
+#mount /dev/mapper/pxd-cache /mnt
+eval "fio --blocksize=8k --filename=/mnt/foo --ioengine=libaio --readwrite=read --size=20G --name=test --iodepth=128 --fsync=128 --direct=1 --end_fsync=1"
+
+# Get dm stats
+dmsetup status /dev/mapper/pxd-cached
+
+# cleanup
+rm /mnt/foo
+umount /mnt
+eval "curl -fsL https://raw.githubusercontent.com/satchpx/dmcache/master/pxcache-setup | bash -s clean"
