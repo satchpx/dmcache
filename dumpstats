@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+outfile="/var/log/dumpstats"
+printf '%80s\n' | tr ' ' - >> $outfile
+date >> $outfile
+for vol in $(pxctl v l | grep -v NAME | awk '{print $1}'); do
+    echo "======= $vol =======" >> $outfile
+    pxctl v i $vol >> $outfile
+    echo "========== done =========" >> $outfile
+done
+printf '%80s\n' | tr ' ' - >> $outfile
+echo "" >> $outfile
+echo "" >> $outfile
+
+printf '%80s\n' | tr ' ' - >> $outfile
+date >> $outfile
+dmsetup status /dev/mapper/pxd-cached >> $outfile
+printf '%80s\n' | tr ' ' - >> $outfile
+echo "" >> $outfile
+echo "" >> $outfile
+
+printf '%80s\n' | tr ' ' - >> $outfile
+date >> $outfile
+cat /proc/diskstats >> $outfile
+printf '%80s\n' | tr ' ' - >> $outfile
+echo "" >> $outfile
+echo "" >> $outfile
+
+#printf '%80s\n' | tr ' ' - >> $outfile
+#date >> $outfile
+#curl -s http://127.0.0.1:9001/metrics | grep px_disk_stats_read_bytes | grep -v -e HELP -e TYPE >> $outfile
+#curl -s http://127.0.0.1:9001/metrics | grep px_disk_stats_read_bytes | grep -v -e HELP -e TYPE >> $outfile
+#printf '%80s\n' | tr ' ' - >> $outfile
+#echo "" >> $outfile
+#echo "" >> $outfile
+
+# upload the file to slack
+curl -F file=@/var/log/dumpstats https://slackit.portworx.com/juniper-eval
